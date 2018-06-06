@@ -9,6 +9,8 @@ import requests
 import sys
 import signal
 import webbrowser
+import time
+from datetime import datetime
 
 from contextlib import closing
 from distutils.version import StrictVersion
@@ -45,6 +47,8 @@ args = console = streamlink = plugin = stream_fd = output = None
 
 log = logging.getLogger("streamlink.console")
 
+def get_timestamp():
+    return str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 def check_file_output(filename, force):
     """Checks if file already exists and ask the user if it should
@@ -235,6 +239,22 @@ def open_stream(stream):
 
     """
     global stream_fd
+
+    if args.start_time:
+        try:
+            start_time = datetime.strptime(args.start_time, '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            console.exit('Start time must be formatted as Y-m-d H:M:S, ' + args.start_time + ' was invalid.')
+
+        secs_to_wait = (start_time - datetime.now()).total_seconds()
+
+        if secs_to_wait > 0:
+            log.info('Sleeping until start time: ' + args.start_time)
+            time.sleep(secs_to_wait)
+        else:
+            log.info('Oops! Start time ' + args.start_time + ' was in the past, starting now.')
+
+    log.info('Video recording start time: ' + get_timestamp())
 
     # Attempts to open the stream
     try:
@@ -514,8 +534,8 @@ def handle_url():
             log.debug("Plugin specific arguments:")
             for parg, value in plugin_args:
                 log.debug(" {0}={1} ({2})".format(parg.argument_name(plugin.module),
-                                                  value if not parg.sensitive else ("*" * 8),
-                                                  parg.dest))
+                                                             value if not parg.sensitive else ("*" * 8),
+                                                             parg.dest))
 
         if args.retry_max or args.retry_streams:
             retry_streams = 1
@@ -663,6 +683,10 @@ def setup_console(output):
     # All console related operations is handled via the ConsoleOutput class
     console = ConsoleOutput(output, streamlink)
 
+    # We don't want log output when we are printing JSON or a command-line.
+    if not any(getattr(args, attr) for attr in QUIET_OPTIONS):
+        console.set_level(args.loglevel)
+
     if args.quiet_player:
         log.warning("The option --quiet-player is deprecated since "
                     "version 1.4.3 as hiding player output is now "
@@ -724,13 +748,13 @@ def setup_http_session():
         streamlink.set_option("http-query-params", args.http_query_params)
 
 
-def setup_plugins(extra_plugin_dir=None):
+def setup_plugins():
     """Loads any additional plugins."""
     if os.path.isdir(PLUGINS_DIR):
         load_plugins([PLUGINS_DIR])
 
-    if extra_plugin_dir:
-        load_plugins(extra_plugin_dir)
+    if args.plugin_dirs:
+        load_plugins(args.plugin_dirs)
 
 
 def setup_streamlink():
@@ -936,10 +960,7 @@ def check_version(force=False):
 
 
 def setup_logging(stream=sys.stdout, level="info"):
-    fmt = ("[{asctime},{msecs:0.0f}]" if level == "trace" else "") + "[{name}][{levelname}] {message}"
-    logger.basicConfig(stream=stream, level=level,
-                       format=fmt, style="{",
-                       datefmt="%H:%M:%S")
+    logger.basicConfig(stream=stream, level=level, format="[{name}][{levelname}] {message}", style="{")
 
 
 def main():
@@ -954,24 +975,15 @@ def main():
         console_out = sys.stderr
     else:
         console_out = sys.stdout
-
-    # We don't want log output when we are printing JSON or a command-line.
-    silent_log = any(getattr(args, attr) for attr in QUIET_OPTIONS)
-    log_level = args.loglevel if not silent_log else "none"
-    setup_logging(console_out, log_level)
-
+    setup_logging(console_out, args.loglevel)
     setup_streamlink()
-    # load additional plugins
-    setup_plugins(args.plugin_dirs)
+    setup_plugins()
     setup_plugin_args(streamlink, parser)
     # call setup args again once the plugin specific args have been added
     setup_args(parser)
     setup_config_args(parser)
-
     # update the logging level if changed by a plugin specific config
-    log_level = args.loglevel if not silent_log else "none"
-    logger.root.setLevel(log_level)
-
+    logger.root.setLevel(args.loglevel)
     setup_console(console_out)
     setup_http_session()
     check_root()
@@ -1007,6 +1019,7 @@ def main():
             if stream_fd:
                 try:
                     log.info("Closing currently open stream...")
+                    log.info("Video recording end time: " + get_timestamp())
                     stream_fd.close()
                 except KeyboardInterrupt:
                     error_code = 130

@@ -542,6 +542,14 @@ def build_parser():
         """
     )
     stream.add_argument(
+        "--start-time",
+        dest="start_time",
+        metavar="STARTTIME",
+        help="""
+        Input a string-formatted datetime of the following form: Y-m-d H:M:S.
+        """
+    )
+    stream.add_argument(
         "--default-stream",
         type=comma_list,
         metavar="STREAM",
