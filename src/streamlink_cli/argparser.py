@@ -546,7 +546,7 @@ def build_parser():
         dest="start_time",
         metavar="STARTTIME",
         help="""
-        Input a string-formatted datetime of the following form: Y-m-d H:M:S.
+        Input a string-formatted datetime of the following form: Y-m-dTH:M:S.
         """
     )
     stream.add_argument(

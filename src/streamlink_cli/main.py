@@ -48,7 +48,7 @@ args = console = streamlink = plugin = stream_fd = output = None
 log = logging.getLogger("streamlink.console")
 
 def get_timestamp():
-    return str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    return str(datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
 
 def check_file_output(filename, force):
     """Checks if file already exists and ask the user if it should
@@ -242,9 +242,9 @@ def open_stream(stream):
 
     if args.start_time:
         try:
-            start_time = datetime.strptime(args.start_time, '%Y-%m-%d %H:%M:%S')
+            start_time = datetime.strptime(args.start_time, '%Y-%m-%dT%H:%M:%S')
         except ValueError:
-            console.exit('Start time must be formatted as Y-m-d H:M:S, ' + args.start_time + ' was invalid.')
+            console.exit('Start time must be formatted as Y-m-dTH:M:S, ' + args.start_time + ' was invalid.')
 
         secs_to_wait = (start_time - datetime.now()).total_seconds()
 
