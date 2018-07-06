@@ -240,19 +240,22 @@ def open_stream(stream):
     """
     global stream_fd
 
-    if args.start_time:
-        try:
-            start_time = datetime.strptime(args.start_time, '%Y-%m-%dT%H:%M:%S')
-        except ValueError:
-            console.exit('Start time must be formatted as Y-m-dTH:M:S, ' + args.start_time + ' was invalid.')
-
-        secs_to_wait = (start_time - datetime.now()).total_seconds()
+    if args.start_time or args.start_time_unix:
+        time_value = args.start_time if args.start_time else args.start_time_unix
+        if args.start_time:
+            try:
+                start_time = datetime.strptime(args.start_time, '%Y-%m-%dT%H:%M:%S')
+            except ValueError:
+                console.exit('Start time must be formatted as Y-m-dTH:M:S, ' + args.start_time + ' was invalid.')
+            secs_to_wait = (start_time - datetime.now()).total_seconds()
+        elif args.start_time_unix:
+            secs_to_wait = int(args.start_time_unix) - time.time()
 
         if secs_to_wait > 0:
-            log.info('Sleeping until start time: ' + args.start_time)
+            log.info('Sleeping until start time: ' + time_value)
             time.sleep(secs_to_wait)
         else:
-            log.info('Oops! Start time ' + args.start_time + ' was in the past, starting now.')
+            log.info('Oops! Start time ' + time_value + ' was in the past, starting now.')
 
     log.info('Video recording start time: ' + get_timestamp())
 

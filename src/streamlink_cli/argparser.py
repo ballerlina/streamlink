@@ -550,6 +550,14 @@ def build_parser():
         """
     )
     stream.add_argument(
+        "--start-time-unix",
+        dest="start_time_unix",
+        metavar="STARTTIMEUNIX",
+        help="""
+        Input a unix timestamp.
+        """
+    )
+    stream.add_argument(
         "--default-stream",
         type=comma_list,
         metavar="STREAM",
